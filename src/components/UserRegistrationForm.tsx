@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { createUser, updateUser } from '../store/userSlice';
@@ -9,12 +9,18 @@ interface UserRegistrationFormProps {
   onCancel?: () => void;
 }
 
+type FormStep = 'basic' | 'contact' | 'verification';
+
 const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({ 
   editingUser = null, 
   onCancel 
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading } = useSelector((state: RootState) => state.user);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Add step state
+  const [currentStep, setCurrentStep] = useState<FormStep>('basic');
 
   const [formData, setFormData] = useState<Omit<UserDetails, 'id'>>({
     fullName: editingUser?.fullName || '',
@@ -36,6 +42,26 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
       ...prev,
       [name]: value
     }));
+  };
+
+  // Photo upload handler
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setFormData(prev => ({
+          ...prev,
+          photo: result
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const handleEducationChange = (index: number, field: keyof Education, value: string) => {
@@ -67,9 +93,20 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
     }
   };
 
+  const handleStepNavigation = (step: FormStep) => {
+    setCurrentStep(step);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // If we're on basic details step and not editing, go to next step
+    if (currentStep === 'basic' && !editingUser) {
+      setCurrentStep('contact');
+      return;
+    }
+    
+    // Final submit logic
     try {
       if (editingUser) {
         await dispatch(updateUser({ ...formData, id: editingUser.id! }));
@@ -90,6 +127,7 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
           education: [{ degree: '', college: '', graduationYear: '' }],
           photo: '',
         });
+        setCurrentStep('basic');
       }
       
       if (onCancel) onCancel();
@@ -97,6 +135,27 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
       console.error('Error submitting form:', error);
     }
   };
+
+  const getStepStyle = (step: FormStep) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: currentStep === step ? '#ff6b35' : '#ccc',
+    fontWeight: currentStep === step ? '600' : 'normal'
+  });
+
+  const getStepNumberStyle = (step: FormStep) => ({
+    width: '24px',
+    height: '24px',
+    backgroundColor: currentStep === step ? '#ff6b35' : '#ccc',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontSize: '12px',
+    fontWeight: 'bold'
+  });
 
   return (
     <div style={{
@@ -163,498 +222,516 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
           }}>
             {editingUser ? 'Edit User' : 'Sign Up'}
           </h1>
+          
+          {/* Step Navigation */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
             gap: '30px',
             marginTop: '20px'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#ff6b35',
-              fontWeight: '600'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: '#ff6b35',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>1</div>
+            <div style={getStepStyle('basic')}>
+              <div style={getStepNumberStyle('basic')}>1</div>
               Basic Details
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#ccc'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: '#ccc',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '12px'
-              }}>2</div>
+            <div style={getStepStyle('contact')}>
+              <div style={getStepNumberStyle('contact')}>2</div>
               Contact Details
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#ccc'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: '#ccc',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '12px'
-              }}>3</div>
+            <div style={getStepStyle('verification')}>
+              <div style={getStepNumberStyle('verification')}>3</div>
               Verification
             </div>
           </div>
         </div>
 
-        <div>
-          {/* Photo Upload */}
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              backgroundColor: '#ff6b35',
-              borderRadius: '50%',
-              margin: '0 auto 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '24px',
-              cursor: 'pointer'
-            }}>
-              📷
-            </div>
-            <p style={{ color: '#ff6b35', fontWeight: '600', margin: 0 }}>Add Photo</p>
-          </div>
-
-          {/* Basic Details */}
-          <h3 style={{ 
-            fontSize: '20px', 
-            fontWeight: '600', 
-            color: '#333', 
-            marginBottom: '20px' 
-          }}>
-            Basic Details
-          </h3>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '600', 
-              color: '#555' 
-            }}>
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              placeholder="Enter Full Name"
-              required
-              style={{
-                width: '100%',
-                padding: '15px',
-                border: '2px solid #f0f0f0',
-                borderRadius: '12px',
-                fontSize: '16px',
-                backgroundColor: '#fafafa',
-                transition: 'all 0.3s ease',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
-              onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
-            />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '600', 
-              color: '#555' 
-            }}>
-              Constituency
-            </label>
-            <input
-              type="text"
-              name="constituency"
-              value={formData.constituency}
-              onChange={handleInputChange}
-              placeholder="Enter Constituency"
-              required
-              style={{
-                width: '100%',
-                padding: '15px',
-                border: '2px solid #f0f0f0',
-                borderRadius: '12px',
-                fontSize: '16px',
-                backgroundColor: '#fafafa',
-                transition: 'all 0.3s ease',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
-              onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
-            />
-          </div>
-
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '20px', 
-            marginBottom: '20px' 
-          }}>
+        <form onSubmit={handleSubmit}>
+          {/* Basic Details Step */}
+          {currentStep === 'basic' && (
             <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '600', 
-                color: '#555' 
-              }}>
-                Select Party You Work For
-              </label>
-              <select
-                name="party"
-                value={formData.party}
-                onChange={handleInputChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  border: '2px solid #f0f0f0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#fafafa',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="">Select Party</option>
-                <option value="Democratic Party">Democratic Party</option>
-                <option value="Republican Party">Republican Party</option>
-                <option value="Independent">Independent</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '600', 
-                color: '#555' 
-              }}>
-                Position
-              </label>
-              <select
-                name="position"
-                value={formData.position}
-                onChange={handleInputChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  border: '2px solid #f0f0f0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#fafafa',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="">Select Position</option>
-                <option value="Mayor">Mayor</option>
-                <option value="Council Member">Council Member</option>
-                <option value="Representative">Representative</option>
-                <option value="Senator">Senator</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '20px', 
-            marginBottom: '20px' 
-          }}>
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '600', 
-                color: '#555' 
-              }}>
-                Date Of Birth
-              </label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  border: '2px solid #f0f0f0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#fafafa',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-            
-            <div>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '600', 
-                color: '#555' 
-              }}>
-                Gender
-              </label>
-              <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={formData.gender === 'male'}
-                    onChange={handleInputChange}
-                    style={{ accentColor: '#ff6b35' }}
-                  />
-                  Male
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={formData.gender === 'female'}
-                    onChange={handleInputChange}
-                    style={{ accentColor: '#ff6b35' }}
-                  />
-                  Female
-                </label>
+              {/* Photo Upload */}
+              <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
+                <div 
+                  onClick={triggerFileInput}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    backgroundColor: formData.photo ? 'transparent' : '#ff6b35',
+                    borderRadius: '50%',
+                    margin: '0 auto 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    backgroundImage: formData.photo ? `url(${formData.photo})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    border: '3px solid #ff6b35'
+                  }}
+                >
+                  {!formData.photo && '📷'}
+                </div>
+                <p style={{ color: '#ff6b35', fontWeight: '600', margin: 0 }}>Add Photo</p>
               </div>
-            </div>
-          </div>
 
-          <div style={{ marginBottom: '30px' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '600', 
-              color: '#555' 
-            }}>
-              Vision & Mission
-            </label>
-            <textarea
-              name="vision"
-              value={formData.vision}
-              onChange={handleInputChange}
-              placeholder="Type Here..."
-              rows={4}
-              style={{
-                width: '100%',
-                padding: '15px',
-                border: '2px solid #f0f0f0',
-                borderRadius: '12px',
-                fontSize: '16px',
-                backgroundColor: '#fafafa',
-                resize: 'vertical',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
-              onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
-            />
-          </div>
-
-          {/* Education Section */}
-          <div style={{ marginBottom: '30px' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '20px' 
-            }}>
+              {/* Basic Details */}
               <h3 style={{ 
                 fontSize: '20px', 
                 fontWeight: '600', 
                 color: '#333', 
-                margin: 0 
+                marginBottom: '20px' 
               }}>
-                Education
+                Basic Details
               </h3>
-              <button
-                type="button"
-                onClick={addEducation}
-                style={{
-                  color: '#ff6b35',
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                + Add Another Education
-              </button>
-            </div>
 
-            {formData.education.map((edu, index) => (
-              <div key={index} style={{ 
-                marginBottom: '20px',
-                padding: '20px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '12px',
-                position: 'relative'
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600', 
+                  color: '#555' 
+                }}>
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  placeholder="Enter Full Name"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    border: '2px solid #f0f0f0',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    backgroundColor: '#fafafa',
+                    transition: 'all 0.3s ease',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
+                  onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600', 
+                  color: '#555' 
+                }}>
+                  Constituency
+                </label>
+                <input
+                  type="text"
+                  name="constituency"
+                  value={formData.constituency}
+                  onChange={handleInputChange}
+                  placeholder="Enter Constituency"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    border: '2px solid #f0f0f0',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    backgroundColor: '#fafafa',
+                    transition: 'all 0.3s ease',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
+                  onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
+                />
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px', 
+                marginBottom: '20px' 
               }}>
-                {formData.education.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeEducation(index)}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: '#555' 
+                  }}>
+                    Select Party You Work For
+                  </label>
+                  <select
+                    name="party"
+                    value={formData.party}
+                    onChange={handleInputChange}
+                    required
                     style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: '#ff4757',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
+                      width: '100%',
+                      padding: '15px',
+                      border: '2px solid #f0f0f0',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      backgroundColor: '#fafafa',
+                      outline: 'none',
+                      boxSizing: 'border-box'
                     }}
                   >
-                    ×
-                  </button>
-                )}
+                    <option value="">Select Party</option>
+                    <option value="Democratic Party">Democratic Party</option>
+                    <option value="Republican Party">Republican Party</option>
+                    <option value="Independent">Independent</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
                 
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 1fr', 
-                  gap: '15px' 
-                }}>
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '8px', 
-                      fontWeight: '600', 
-                      color: '#555',
-                      fontSize: '14px'
-                    }}>
-                      Degree
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: '#555' 
+                  }}>
+                    Position
+                  </label>
+                  <select
+                    name="position"
+                    value={formData.position}
+                    onChange={handleInputChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '15px',
+                      border: '2px solid #f0f0f0',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      backgroundColor: '#fafafa',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="">Select Position</option>
+                    <option value="Mayor">Mayor</option>
+                    <option value="Council Member">Council Member</option>
+                    <option value="Representative">Representative</option>
+                    <option value="Senator">Senator</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px', 
+                marginBottom: '20px' 
+              }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: '#555' 
+                  }}>
+                    Date Of Birth
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleInputChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '15px',
+                      border: '2px solid #f0f0f0',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      backgroundColor: '#fafafa',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: '#555' 
+                  }}>
+                    Gender
+                  </label>
+                  <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value="male"
+                        checked={formData.gender === 'male'}
+                        onChange={handleInputChange}
+                        style={{ accentColor: '#ff6b35' }}
+                      />
+                      Male
                     </label>
-                    <input
-                      type="text"
-                      value={edu.degree}
-                      onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                      placeholder="Bachelor/Master"
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        backgroundColor: 'white',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '8px', 
-                      fontWeight: '600', 
-                      color: '#555',
-                      fontSize: '14px'
-                    }}>
-                      College / University
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value="female"
+                        checked={formData.gender === 'female'}
+                        onChange={handleInputChange}
+                        style={{ accentColor: '#ff6b35' }}
+                      />
+                      Female
                     </label>
-                    <input
-                      type="text"
-                      value={edu.college}
-                      onChange={(e) => handleEducationChange(index, 'college', e.target.value)}
-                      placeholder="College name appears here"
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        backgroundColor: 'white',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '8px', 
-                      fontWeight: '600', 
-                      color: '#555',
-                      fontSize: '14px'
-                    }}>
-                      Graduation Year
-                    </label>
-                    <input
-                      type="text"
-                      value={edu.graduationYear}
-                      onChange={(e) => handleEducationChange(index, 'graduationYear', e.target.value)}
-                      placeholder="YYYY"
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        backgroundColor: 'white',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div style={{ marginBottom: '30px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600', 
+                  color: '#555' 
+                }}>
+                  Vision & Mission
+                </label>
+                <textarea
+                  name="vision"
+                  value={formData.vision}
+                  onChange={handleInputChange}
+                  placeholder="Type Here..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '15px',
+                    border: '2px solid #f0f0f0',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    backgroundColor: '#fafafa',
+                    resize: 'vertical',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#ff6b35'}
+                  onBlur={(e) => e.target.style.borderColor = '#f0f0f0'}
+                />
+              </div>
+
+              {/* Education Section */}
+              <div style={{ marginBottom: '30px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '20px' 
+                }}>
+                  <h3 style={{ 
+                    fontSize: '20px', 
+                    fontWeight: '600', 
+                    color: '#333', 
+                    margin: 0 
+                  }}>
+                    Education
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addEducation}
+                    style={{
+                      color: '#ff6b35',
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    + Add Another Education
+                  </button>
+                </div>
+
+                {formData.education.map((edu, index) => (
+                  <div key={index} style={{ 
+                    marginBottom: '20px',
+                    padding: '20px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '12px',
+                    position: 'relative'
+                  }}>
+                    {formData.education.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEducation(index)}
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          background: '#ff4757',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                    
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr 1fr', 
+                      gap: '15px' 
+                    }}>
+                      <div>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '8px', 
+                          fontWeight: '600', 
+                          color: '#555',
+                          fontSize: '14px'
+                        }}>
+                          Degree
+                        </label>
+                        <input
+                          type="text"
+                          value={edu.degree}
+                          onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+                          placeholder="Bachelor/Master"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            backgroundColor: 'white',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '8px', 
+                          fontWeight: '600', 
+                          color: '#555',
+                          fontSize: '14px'
+                        }}>
+                          College / University
+                        </label>
+                        <input
+                          type="text"
+                          value={edu.college}
+                          onChange={(e) => handleEducationChange(index, 'college', e.target.value)}
+                          placeholder="College name appears here"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            backgroundColor: 'white',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '8px', 
+                          fontWeight: '600', 
+                          color: '#555',
+                          fontSize: '14px'
+                        }}>
+                          Graduation Year
+                        </label>
+                        <input
+                          type="text"
+                          value={edu.graduationYear}
+                          onChange={(e) => handleEducationChange(index, 'graduationYear', e.target.value)}
+                          placeholder="YYYY"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            backgroundColor: 'white',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contact Details Step */}
+          {currentStep === 'contact' && (
+            <div>
+              <h3 style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#333', 
+                marginBottom: '20px' 
+              }}>
+                Contact Details
+              </h3>
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '60px 20px',
+                color: '#666'
+              }}>
+                <p style={{ fontSize: '18px' }}>Contact details form will be implemented here</p>
+                <p>This could include phone number, email, address, etc.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Verification Step */}
+          {currentStep === 'verification' && (
+            <div>
+              <h3 style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#333', 
+                marginBottom: '20px' 
+              }}>
+                Verification
+              </h3>
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '60px 20px',
+                color: '#666'
+              }}>
+                <p style={{ fontSize: '18px' }}>Verification form will be implemented here</p>
+                <p>This could include document upload, phone verification, etc.</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div style={{ 
@@ -663,6 +740,29 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
             justifyContent: 'center',
             marginTop: '40px'
           }}>
+            {currentStep !== 'basic' && !editingUser && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentStep === 'contact') setCurrentStep('basic');
+                  if (currentStep === 'verification') setCurrentStep('contact');
+                }}
+                style={{
+                  padding: '15px 30px',
+                  border: '2px solid #ff6b35',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  backgroundColor: 'white',
+                  color: '#ff6b35',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Previous
+              </button>
+            )}
+            
             {onCancel && (
               <button
                 type="button"
@@ -682,6 +782,7 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
                 Cancel
               </button>
             )}
+            
             <button
               type="submit"
               disabled={loading}
@@ -699,10 +800,15 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
                 boxShadow: '0 4px 15px rgba(255, 107, 53, 0.3)'
               }}
             >
-              {loading ? 'Saving...' : (editingUser ? 'Update' : 'Save & Continue')}
+              {loading ? 'Saving...' : (
+                editingUser ? 'Update' :
+                currentStep === 'basic' ? 'Save & Continue' :
+                currentStep === 'contact' ? 'Continue' :
+                'Complete Registration'
+              )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
