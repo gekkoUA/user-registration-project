@@ -9,6 +9,13 @@ export interface UserDetails {
   vision: string;
   education: Education[];
   photo?: string;
+  // Contact Details
+  phone?: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
 }
 
 export interface Education {

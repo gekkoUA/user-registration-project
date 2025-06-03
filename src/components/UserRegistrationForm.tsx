@@ -9,7 +9,6 @@ interface UserRegistrationFormProps {
   onCancel?: () => void;
 }
 
-// Shared styles
 const inputStyle = {
   width: '100%',
   padding: '15px',
@@ -47,6 +46,7 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading } = useSelector((state: RootState) => state.user);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const initialFormData = {
     fullName: editingUser?.fullName || '',
@@ -58,6 +58,12 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
     vision: editingUser?.vision || '',
     education: editingUser?.education || [{ degree: '', college: '', graduationYear: '' }],
     photo: editingUser?.photo || '',
+    phone: editingUser?.phone || '',
+    email: editingUser?.email || '',
+    address: editingUser?.address || '',
+    city: editingUser?.city || '',
+    state: editingUser?.state || '',
+    zipCode: editingUser?.zipCode || '',
   };
 
   const [formData, setFormData] = useState<Omit<UserDetails, 'id'>>(initialFormData);
@@ -94,15 +100,20 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
     try {
       if (editingUser) {
         await dispatch(updateUser({ ...formData, id: editingUser.id! }));
+        onCancel?.();
       } else {
         await dispatch(createUser(formData));
         setFormData(initialFormData);
+        setCurrentStep(1);
+        onCancel?.();
       }
-      onCancel?.();
     } catch (error) {
       console.error('Error submitting form:', error);
     }
   };
+
+  const nextStep = () => setCurrentStep(2);
+  const prevStep = () => setCurrentStep(1);
 
   const StepIndicator = ({ step, label, active = false }: { step: number; label: string; active?: boolean }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: active ? '#ff6b35' : '#ccc' }}>
@@ -184,7 +195,6 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
       padding: '40px 20px',
       fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
-      {/* Background decorations */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none',
         background: `radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
@@ -196,7 +206,6 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
         maxWidth: '600px', margin: '0 auto', backgroundColor: 'white', borderRadius: '24px',
         padding: '40px', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)', position: 'relative', zIndex: 1
       }}>
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
             {[1, 2, 3].map(i => (
@@ -212,152 +221,179 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
           </h1>
           
           <div style={{ display: 'flex', justifyContent: 'center', gap: '30px' }}>
-            <StepIndicator step={1} label="Basic Details" active />
-            <StepIndicator step={2} label="Contact Details" />
+            <StepIndicator step={1} label="Basic Details" active={currentStep === 1} />
+            <StepIndicator step={2} label="Contact Details" active={currentStep === 2} />
             <StepIndicator step={3} label="Verification" />
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Photo Upload */}
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <div style={{
-              width: '80px', height: '80px', backgroundColor: '#ff6b35', borderRadius: '50%',
-              margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '24px', cursor: 'pointer'
-            }}>
-              📷
-            </div>
-            <p style={{ color: '#ff6b35', fontWeight: '600', margin: 0 }}>Add Photo</p>
-          </div>
-
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '20px' }}>
-            Basic Details
-          </h3>
-
-          <InputField label="Full Name" name="fullName" placeholder="Enter Full Name" required />
-          <InputField label="Constituency" name="constituency" placeholder="Enter Constituency" required />
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-            <InputField label="Select Party You Work For" name="party" as="select" required>
-              <option value="">Select Party</option>
-              <option value="Democratic Party">Democratic Party</option>
-              <option value="Republican Party">Republican Party</option>
-              <option value="Independent">Independent</option>
-              <option value="Other">Other</option>
-            </InputField>
-            
-            <InputField label="Position" name="position" as="select" required>
-              <option value="">Select Position</option>
-              <option value="Mayor">Mayor</option>
-              <option value="Council Member">Council Member</option>
-              <option value="Representative">Representative</option>
-              <option value="Senator">Senator</option>
-            </InputField>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-            <InputField label="Date Of Birth" name="dateOfBirth" type="date" required />
-            
-            <div>
-              <label style={labelStyle}>Gender</label>
-              <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
-                {['male', 'female'].map(gender => (
-                  <label key={gender} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={gender}
-                      checked={formData.gender === gender}
-                      onChange={handleInputChange}
-                      style={{ accentColor: '#ff6b35' }}
-                    />
-                    {gender.charAt(0).toUpperCase() + gender.slice(1)}
-                  </label>
-                ))}
+          {currentStep === 1 ? (
+            <>
+              <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                <div style={{
+                  width: '80px', height: '80px', backgroundColor: '#ff6b35', borderRadius: '50%',
+                  margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontSize: '24px', cursor: 'pointer'
+                }}>
+                  📷
+                </div>
+                <p style={{ color: '#ff6b35', fontWeight: '600', margin: 0 }}>Add Photo</p>
               </div>
-            </div>
-          </div>
 
-          <InputField 
-            label="Vision & Mission" 
-            name="vision" 
-            as="textarea" 
-            placeholder="Type Here..." 
-            rows={4} 
-          />
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '20px' }}>
+                Basic Details
+              </h3>
 
-          {/* Education Section */}
-          <div style={{ marginBottom: '30px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>Education</h3>
-              <button type="button" onClick={addEducation} style={{
-                color: '#ff6b35', background: 'none', border: 'none', fontSize: '16px',
-                fontWeight: '600', cursor: 'pointer', textDecoration: 'underline'
-              }}>
-                + Add Another Education
-              </button>
-            </div>
+              <InputField label="Full Name" name="fullName" placeholder="Enter Full Name" required />
+              <InputField label="Constituency" name="constituency" placeholder="Enter Constituency" required />
 
-            {formData.education.map((edu, index) => (
-              <div key={index} style={{
-                marginBottom: '20px', padding: '20px', backgroundColor: '#f8f9fa',
-                borderRadius: '12px', position: 'relative'
-              }}>
-                {formData.education.length > 1 && (
-                  <button type="button" onClick={() => removeEducation(index)} style={{
-                    position: 'absolute', top: '10px', right: '10px', background: '#ff4757',
-                    color: 'white', border: 'none', borderRadius: '50%', width: '24px',
-                    height: '24px', cursor: 'pointer', fontSize: '14px'
-                  }}>
-                    ×
-                  </button>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <InputField label="Select Party You Work For" name="party" as="select" required>
+                  <option value="">Select Party</option>
+                  <option value="Democratic Party">Democratic Party</option>
+                  <option value="Republican Party">Republican Party</option>
+                  <option value="Independent">Independent</option>
+                  <option value="Other">Other</option>
+                </InputField>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-                  {[
-                    { field: 'degree', label: 'Degree', placeholder: 'Bachelor/Master' },
-                    { field: 'college', label: 'College / University', placeholder: 'College name appears here' },
-                    { field: 'graduationYear', label: 'Graduation Year', placeholder: 'YYYY' }
-                  ].map(({ field, label, placeholder }) => (
-                    <div key={field}>
-                      <label style={{ ...labelStyle, fontSize: '14px' }}>{label}</label>
-                      <input
-                        type="text"
-                        value={edu[field as keyof Education]}
-                        onChange={(e) => handleEducationChange(index, field as keyof Education, e.target.value)}
-                        placeholder={placeholder}
-                        style={{
-                          ...inputStyle,
-                          padding: '12px',
-                          border: '2px solid #e0e0e0',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          backgroundColor: 'white'
-                        }}
-                      />
-                    </div>
-                  ))}
+                <InputField label="Position" name="position" as="select" required>
+                  <option value="">Select Position</option>
+                  <option value="Mayor">Mayor</option>
+                  <option value="Council Member">Council Member</option>
+                  <option value="Representative">Representative</option>
+                  <option value="Senator">Senator</option>
+                </InputField>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <InputField label="Date Of Birth" name="dateOfBirth" type="date" required />
+                
+                <div>
+                  <label style={labelStyle}>Gender</label>
+                  <div style={{ display: 'flex', gap: '20px', marginTop: '15px' }}>
+                    {['male', 'female'].map(gender => (
+                      <label key={gender} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="radio"
+                          name="gender"
+                          value={gender}
+                          checked={formData.gender === gender}
+                          onChange={handleInputChange}
+                          style={{ accentColor: '#ff6b35' }}
+                        />
+                        {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '40px' }}>
-            {onCancel && (
-              <button type="button" onClick={onCancel} style={buttonStyle()}>
-                Cancel
-              </button>
-            )}
-            <button type="submit" disabled={loading} style={{
-              ...buttonStyle(true),
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1
-            }}>
-              {loading ? 'Saving...' : (editingUser ? 'Update' : 'Save & Continue')}
-            </button>
-          </div>
+              <InputField 
+                label="Vision & Mission" 
+                name="vision" 
+                as="textarea" 
+                placeholder="Type Here..." 
+                rows={4} 
+              />
+
+              <div style={{ marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', margin: 0 }}>Education</h3>
+                  <button type="button" onClick={addEducation} style={{
+                    color: '#ff6b35', background: 'none', border: 'none', fontSize: '16px',
+                    fontWeight: '600', cursor: 'pointer', textDecoration: 'underline'
+                  }}>
+                    + Add Another Education
+                  </button>
+                </div>
+
+                {formData.education.map((edu, index) => (
+                  <div key={index} style={{
+                    marginBottom: '20px', padding: '20px', backgroundColor: '#f8f9fa',
+                    borderRadius: '12px', position: 'relative'
+                  }}>
+                    {formData.education.length > 1 && (
+                      <button type="button" onClick={() => removeEducation(index)} style={{
+                        position: 'absolute', top: '10px', right: '10px', background: '#ff4757',
+                        color: 'white', border: 'none', borderRadius: '50%', width: '24px',
+                        height: '24px', cursor: 'pointer', fontSize: '14px'
+                      }}>
+                        ×
+                      </button>
+                    )}
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                      {[
+                        { field: 'degree', label: 'Degree', placeholder: 'Bachelor/Master' },
+                        { field: 'college', label: 'College / University', placeholder: 'College name appears here' },
+                        { field: 'graduationYear', label: 'Graduation Year', placeholder: 'YYYY' }
+                      ].map(({ field, label, placeholder }) => (
+                        <div key={field}>
+                          <label style={{ ...labelStyle, fontSize: '14px' }}>{label}</label>
+                          <input
+                            type="text"
+                            value={edu[field as keyof Education]}
+                            onChange={(e) => handleEducationChange(index, field as keyof Education, e.target.value)}
+                            placeholder={placeholder}
+                            style={{
+                              ...inputStyle,
+                              padding: '12px',
+                              border: '2px solid #e0e0e0',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              backgroundColor: 'white'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '40px' }}>
+                {onCancel && (
+                  <button type="button" onClick={onCancel} style={buttonStyle()}>
+                    Cancel
+                  </button>
+                )}
+                <button type="button" onClick={nextStep} style={buttonStyle(true)}>
+                  Save & Continue
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#333', marginBottom: '20px' }}>
+                Contact Details
+              </h3>
+
+              <InputField label="Phone Number" name="phone" type="tel" placeholder="Enter Phone Number" />
+              <InputField label="Email Address" name="email" type="email" placeholder="Enter Email Address" required />
+              <InputField label="Address" name="address" placeholder="Enter Address" required />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <InputField label="City" name="city" placeholder="Enter City" required />
+                <InputField label="State" name="state" placeholder="Enter State" required />
+              </div>
+
+              <InputField label="ZIP Code" name="zipCode" placeholder="Enter ZIP Code" required />
+
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '40px' }}>
+                <button type="button" onClick={prevStep} style={buttonStyle()}>
+                  Back
+                </button>
+                <button type="submit" disabled={loading} style={{
+                  ...buttonStyle(true),
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1
+                }}>
+                  {loading ? 'Saving...' : (editingUser ? 'Update' : 'Complete Registration')}
+                </button>
+              </div>
+            </>
+          )}
         </form>
       </div>
     </div>
