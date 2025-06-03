@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { createUser, updateUser } from '../store/userSlice';
@@ -48,7 +48,8 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
   const { loading } = useSelector((state: RootState) => state.user);
   const [currentStep, setCurrentStep] = useState(1);
 
-  const initialFormData = {
+  // Use useMemo to create initialFormData only once
+  const initialFormData = useMemo(() => ({
     fullName: editingUser?.fullName || '',
     constituency: editingUser?.constituency || '',
     party: editingUser?.party || '',
@@ -64,7 +65,7 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
     city: editingUser?.city || '',
     state: editingUser?.state || '',
     zipCode: editingUser?.zipCode || '',
-  };
+  }), [editingUser]);
 
   const [formData, setFormData] = useState<Omit<UserDetails, 'id'>>(initialFormData);
 
