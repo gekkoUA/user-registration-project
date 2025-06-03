@@ -1,36 +1,60 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { UserDetails, UserState } from '../types/user';
-import { userApi } from '../api/userApi';
 
-// AsyncThunk для CRUD операцій
+// Generate unique ID
+const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
+// Local storage helpers
+const loadUsersFromStorage = (): UserDetails[] => {
+  try {
+    const users = localStorage.getItem('registeredUsers');
+    return users ? JSON.parse(users) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveUsersToStorage = (users: UserDetails[]) => {
+  localStorage.setItem('registeredUsers', JSON.stringify(users));
+};
+
+// Simplified async thunks that work with local data
 export const fetchUsers = createAsyncThunk(
   'user/fetchUsers',
   async () => {
-    const response = await userApi.getAll();
-    return response;
+    return loadUsersFromStorage();
   }
 );
 
 export const createUser = createAsyncThunk(
   'user/createUser',
   async (userData: Omit<UserDetails, 'id'>) => {
-    const response = await userApi.create(userData);
-    return response;
+    const users = loadUsersFromStorage();
+    const newUser = { ...userData, id: generateId() };
+    const updatedUsers = [...users, newUser];
+    saveUsersToStorage(updatedUsers);
+    return newUser;
   }
 );
 
 export const updateUser = createAsyncThunk(
   'user/updateUser',
   async (userData: UserDetails) => {
-    const response = await userApi.update(userData.id!, userData);
-    return response;
+    const users = loadUsersFromStorage();
+    const updatedUsers = users.map(user => 
+      user.id === userData.id ? userData : user
+    );
+    saveUsersToStorage(updatedUsers);
+    return userData;
   }
 );
 
 export const deleteUser = createAsyncThunk(
   'user/deleteUser',
   async (id: string) => {
-    await userApi.delete(id);
+    const users = loadUsersFromStorage();
+    const updatedUsers = users.filter(user => user.id !== id);
+    saveUsersToStorage(updatedUsers);
     return id;
   }
 );
