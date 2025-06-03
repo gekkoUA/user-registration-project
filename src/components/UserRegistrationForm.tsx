@@ -22,19 +22,25 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
   // Add step state
   const [currentStep, setCurrentStep] = useState<FormStep>('basic');
 
-  const [formData, setFormData] = useState<Omit<UserDetails, 'id'>>({
-    fullName: editingUser?.fullName || '',
-    constituency: editingUser?.constituency || '',
-    party: editingUser?.party || '',
-    position: editingUser?.position || '',
-    dateOfBirth: editingUser?.dateOfBirth || '',
-    gender: editingUser?.gender || 'male',
-    vision: editingUser?.vision || '',
-    education: editingUser?.education || [
-      { degree: '', college: '', graduationYear: '' }
-    ],
-    photo: editingUser?.photo || '',
-  });
+const [formData, setFormData] = useState<Omit<UserDetails, 'id'>>({
+  fullName: editingUser?.fullName || '',
+  constituency: editingUser?.constituency || '',
+  party: editingUser?.party || '',
+  position: editingUser?.position || '',
+  dateOfBirth: editingUser?.dateOfBirth || '',
+  gender: editingUser?.gender || 'male',
+  vision: editingUser?.vision || '',
+  education: editingUser?.education || [
+    { degree: '', college: '', graduationYear: '' }
+  ],
+  photo: editingUser?.photo || '',
+  // Add missing contact fields
+  email: editingUser?.email || '',
+  address: editingUser?.address || '',
+  city: editingUser?.city || '',
+  state: editingUser?.state || '',
+  zipCode: editingUser?.zipCode || '',
+});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -115,20 +121,25 @@ const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
       }
       
       // Reset form after successful submission
-      if (!editingUser) {
-        setFormData({
-          fullName: '',
-          constituency: '',
-          party: '',
-          position: '',
-          dateOfBirth: '',
-          gender: 'male',
-          vision: '',
-          education: [{ degree: '', college: '', graduationYear: '' }],
-          photo: '',
-        });
-        setCurrentStep('basic');
-      }
+if (!editingUser) {
+  setFormData({
+    fullName: '',
+    constituency: '',
+    party: '',
+    position: '',
+    dateOfBirth: '',
+    gender: 'male',
+    vision: '',
+    education: [{ degree: '', college: '', graduationYear: '' }],
+    photo: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+  });
+  setCurrentStep('basic');
+}
       
       if (onCancel) onCancel();
     } catch (error) {
