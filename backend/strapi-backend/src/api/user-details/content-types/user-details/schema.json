@@ -1,0 +1,95 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_details_plural",
+  "info": {
+    "singularName": "user-details",
+    "pluralName": "user-details-plural",
+    "displayName": "UserDetails"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "fullname": {
+      "type": "string",
+      "required": true,
+      "unique": false
+    },
+    "constituency": {
+      "type": "string",
+      "required": true
+    },
+    "party": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "Democratic Party",
+        "Republican Party",
+        "Independent",
+        "Other"
+      ]
+    },
+    "position": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "Mayor",
+        "Council Member",
+        "Representative",
+        "Senator"
+      ]
+    },
+    "dateOfBirth": {
+      "type": "date",
+      "required": true
+    },
+    "gender": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "male",
+        "female"
+      ]
+    },
+    "vision": {
+      "type": "blocks"
+    },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true,
+      "unique": true
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zipCode": {
+      "type": "string"
+    },
+    "education": {
+      "type": "component",
+      "component": "shared.education",
+      "repeatable": true
+    }
+  }
+}

@@ -1,61 +1,61 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { UserDetails, UserState } from '../types/user';
+import { userApi } from '../api/userApi';
 
-// Generate unique ID
-const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-// Local storage helpers
-const loadUsersFromStorage = (): UserDetails[] => {
-  try {
-    const users = localStorage.getItem('registeredUsers');
-    return users ? JSON.parse(users) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveUsersToStorage = (users: UserDetails[]) => {
-  localStorage.setItem('registeredUsers', JSON.stringify(users));
-};
-
-// Simplified async thunks that work with local data
+// Async thunks for Strapi API
 export const fetchUsers = createAsyncThunk(
   'user/fetchUsers',
-  async () => {
-    return loadUsersFromStorage();
+  async (_, { rejectWithValue }) => {
+    try {
+      return await userApi.getAll();
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to fetch users');
+    }
   }
 );
 
 export const createUser = createAsyncThunk(
   'user/createUser',
-  async (userData: Omit<UserDetails, 'id'>) => {
-    const users = loadUsersFromStorage();
-    const newUser = { ...userData, id: generateId() };
-    const updatedUsers = [...users, newUser];
-    saveUsersToStorage(updatedUsers);
-    return newUser;
+  async (userData: Omit<UserDetails, 'id'>, { rejectWithValue }) => {
+    try {
+      return await userApi.create(userData);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to create user');
+    }
   }
 );
 
 export const updateUser = createAsyncThunk(
   'user/updateUser',
-  async (userData: UserDetails) => {
-    const users = loadUsersFromStorage();
-    const updatedUsers = users.map(user => 
-      user.id === userData.id ? userData : user
-    );
-    saveUsersToStorage(updatedUsers);
-    return userData;
+  async (userData: UserDetails, { rejectWithValue }) => {
+    try {
+      return await userApi.update(userData.id!, userData);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to update user');
+    }
   }
 );
 
 export const deleteUser = createAsyncThunk(
   'user/deleteUser',
-  async (id: string) => {
-    const users = loadUsersFromStorage();
-    const updatedUsers = users.filter(user => user.id !== id);
-    saveUsersToStorage(updatedUsers);
-    return id;
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await userApi.delete(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to delete user');
+    }
+  }
+);
+
+export const uploadPhoto = createAsyncThunk(
+  'user/uploadPhoto',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      return await userApi.uploadPhoto(file);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error?.message || 'Failed to upload photo');
+    }
   }
 );
 
@@ -78,6 +78,7 @@ const userSlice = createSlice({
       // Fetch users
       .addCase(fetchUsers.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
@@ -85,11 +86,12 @@ const userSlice = createSlice({
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch users';
+        state.error = action.payload as string;
       })
       // Create user
       .addCase(createUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(createUser.fulfilled, (state, action) => {
         state.loading = false;
@@ -97,18 +99,48 @@ const userSlice = createSlice({
       })
       .addCase(createUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to create user';
+        state.error = action.payload as string;
       })
       // Update user
+      .addCase(updateUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(updateUser.fulfilled, (state, action) => {
+        state.loading = false;
         const index = state.users.findIndex(user => user.id === action.payload.id);
         if (index !== -1) {
           state.users[index] = action.payload;
         }
       })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
       // Delete user
+      .addCase(deleteUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(deleteUser.fulfilled, (state, action) => {
+        state.loading = false;
         state.users = state.users.filter(user => user.id !== action.payload);
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Upload photo
+      .addCase(uploadPhoto.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(uploadPhoto.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(uploadPhoto.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
