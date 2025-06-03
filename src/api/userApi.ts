@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { UserDetails } from '../types/user';
 
-const API_BASE_URL = 'http://localhost:1337/api';
+const API_BASE_URL = 'http://localhost:3001';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,93 +10,87 @@ const apiClient = axios.create({
   },
 });
 
-// Strapi response wrapper type
-interface StrapiResponse<T> {
-  data: T;
-  meta: {
-    pagination?: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
-
-interface StrapiSingleResponse<T> {
-  data: {
-    id: number;
-    attributes: T;
-  };
-}
-
-interface StrapiMultipleResponse<T> {
-  data: Array<{
-    id: number;
-    attributes: T;
-  }>;
-}
-
-// Transform Strapi data to our format
-const transformStrapiUser = (strapiUser: { id: number; attributes: UserDetails }): UserDetails => ({
-  id: strapiUser.id.toString(),
-  ...strapiUser.attributes,
-});
-
-const transformUserForStrapi = (user: Omit<UserDetails, 'id'>): { data: Omit<UserDetails, 'id'> } => ({
-  data: user,
-});
-
-const transformUserUpdateForStrapi = (user: Partial<UserDetails>): { data: Partial<UserDetails> } => {
-  const { id, ...userData } = user;
-  return { data: userData };
-};
-
 export const userApi = {
   getAll: async (): Promise<UserDetails[]> => {
-    const response = await apiClient.get<StrapiMultipleResponse<UserDetails>>('/user-details?populate=*');
-    return response.data.data.map(transformStrapiUser);
+    try {
+      const response = await apiClient.get<UserDetails[]>('/users');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
   },
 
   getById: async (id: string): Promise<UserDetails> => {
-    const response = await apiClient.get<StrapiSingleResponse<UserDetails>>(`/user-details/${id}?populate=*`);
-    return transformStrapiUser(response.data.data);
+    try {
+      const response = await apiClient.get<UserDetails>(`/users/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      throw error;
+    }
   },
 
   create: async (userData: Omit<UserDetails, 'id'>): Promise<UserDetails> => {
-    const response = await apiClient.post<StrapiSingleResponse<UserDetails>>(
-      '/user-details', 
-      transformUserForStrapi(userData)
-    );
-    return transformStrapiUser(response.data.data);
+    try {
+      // Generate a unique ID for json-server
+      const userWithId = {
+        ...userData,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const response = await apiClient.post<UserDetails>('/users', userWithId);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   },
 
   update: async (id: string, userData: Partial<UserDetails>): Promise<UserDetails> => {
-    const response = await apiClient.put<StrapiSingleResponse<UserDetails>>(
-      `/user-details/${id}`, 
-      transformUserUpdateForStrapi(userData)
-    );
-    return transformStrapiUser(response.data.data);
+    try {
+      const updateData = {
+        ...userData,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const response = await apiClient.put<UserDetails>(`/users/${id}`, updateData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   },
 
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/user-details/${id}`);
+    try {
+      await apiClient.delete(`/users/${id}`);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   },
 
-  // Upload photo method
+  // Upload photo method (simplified for json-server)
   uploadPhoto: async (file: File): Promise<{ url: string; id: number }> => {
-    const formData = new FormData();
-    formData.append('files', file);
-
-    const response = await apiClient.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return {
-      url: `http://localhost:1337${response.data[0].url}`,
-      id: response.data[0].id,
-    };
+    try {
+      // For json-server, we'll convert the file to base64 data URL
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            url: reader.result as string,
+            id: Date.now(),
+          });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      throw error;
+    }
   },
 };
