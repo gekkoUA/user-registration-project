@@ -21,10 +21,24 @@ function App() {
 
   const handleViewChange = (view: 'form' | 'list') => {
     setCurrentView(view);
-    if (view === 'form') {
-      setEditingUser(null);
-    }
+    if (view === 'form') setEditingUser(null);
   };
+
+  const NavButton = ({ view, label }: { view: 'form' | 'list'; label: string }) => (
+    <button
+      onClick={() => handleViewChange(view)}
+      style={{
+        padding: '10px 20px',
+        backgroundColor: currentView === view ? '#ff6b35' : 'transparent',
+        color: 'white',
+        border: '1px solid #ff6b35',
+        borderRadius: '6px',
+        cursor: 'pointer'
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <Provider store={store}>
@@ -32,39 +46,13 @@ function App() {
         <nav style={{
           backgroundColor: '#333',
           padding: '1rem',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'center'
         }}>
-          <div style={{
-            display: 'flex',
-            gap: '20px',
-            justifyContent: 'center'
-          }}>
-            <button
-              onClick={() => handleViewChange('form')}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: currentView === 'form' ? '#ff6b35' : 'transparent',
-                color: 'white',
-                border: '1px solid #ff6b35',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              Registration Form
-            </button>
-            <button
-              onClick={() => handleViewChange('list')}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: currentView === 'list' ? '#ff6b35' : 'transparent',
-                color: 'white',
-                border: '1px solid #ff6b35',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              User List
-            </button>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <NavButton view="form" label="Registration Form" />
+            <NavButton view="list" label="User List" />
           </div>
         </nav>
 

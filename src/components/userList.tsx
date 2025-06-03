@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { fetchUsers, deleteUser } from '../store/userSlice';
@@ -16,19 +16,76 @@ const UserList: React.FC<UserListProps> = ({ onEditUser }) => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       dispatch(deleteUser(id));
     }
   };
 
-  if (loading) {
-    return <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>;
-  }
+  if (loading) return <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>;
+  if (error) return <div style={{ textAlign: 'center', padding: '20px', color: 'red' }}>Error: {error}</div>;
 
-  if (error) {
-    return <div style={{ textAlign: 'center', padding: '20px', color: 'red' }}>Error: {error}</div>;
-  }
+  const buttonStyle = (variant: 'edit' | 'delete') => ({
+    padding: '8px 16px',
+    backgroundColor: variant === 'edit' ? '#ff6b35' : '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  });
+
+  const UserCard = ({ user }: { user: UserDetails }) => (
+    <div style={{
+      border: '1px solid #ddd',
+      borderRadius: '12px',
+      padding: '20px',
+      backgroundColor: 'white',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+        <div>
+          <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{user.fullName}</h3>
+          {[
+            ['Constituency', user.constituency],
+            ['Party', user.party],
+            ['Position', user.position],
+            ['Date of Birth', user.dateOfBirth],
+            ['Gender', user.gender]
+          ].map(([label, value]) => (
+            <p key={label} style={{ margin: '5px 0', color: '#666' }}>
+              <strong>{label}:</strong> {value}
+            </p>
+          ))}
+          
+          {user.vision && (
+            <p style={{ margin: '10px 0', color: '#666' }}>
+              <strong>Vision:</strong> {user.vision}
+            </p>
+          )}
+          
+          {user.education?.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <strong>Education:</strong>
+              {user.education.map((edu, index) => (
+                <div key={index} style={{ marginLeft: '20px', marginTop: '5px' }}>
+                  {edu.degree} from {edu.college} ({edu.graduationYear})
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => onEditUser(user)} style={buttonStyle('edit')}>
+            Edit
+          </button>
+          <button onClick={() => handleDelete(user.id!)} style={buttonStyle('delete')}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ padding: '20px' }}>
@@ -37,82 +94,7 @@ const UserList: React.FC<UserListProps> = ({ onEditUser }) => {
         <p>No users registered yet.</p>
       ) : (
         <div style={{ display: 'grid', gap: '20px' }}>
-          {users.map((user) => (
-            <div
-              key={user.id}
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '12px',
-                padding: '20px',
-                backgroundColor: 'white',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{user.fullName}</h3>
-                  <p style={{ margin: '5px 0', color: '#666' }}>
-                    <strong>Constituency:</strong> {user.constituency}
-                  </p>
-                  <p style={{ margin: '5px 0', color: '#666' }}>
-                    <strong>Party:</strong> {user.party}
-                  </p>
-                  <p style={{ margin: '5px 0', color: '#666' }}>
-                    <strong>Position:</strong> {user.position}
-                  </p>
-                  <p style={{ margin: '5px 0', color: '#666' }}>
-                    <strong>Date of Birth:</strong> {user.dateOfBirth}
-                  </p>
-                  <p style={{ margin: '5px 0', color: '#666' }}>
-                    <strong>Gender:</strong> {user.gender}
-                  </p>
-                  {user.vision && (
-                    <p style={{ margin: '10px 0', color: '#666' }}>
-                      <strong>Vision:</strong> {user.vision}
-                    </p>
-                  )}
-                  {user.education && user.education.length > 0 && (
-                    <div style={{ marginTop: '10px' }}>
-                      <strong>Education:</strong>
-                      {user.education.map((edu, index) => (
-                        <div key={index} style={{ marginLeft: '20px', marginTop: '5px' }}>
-                          {edu.degree} from {edu.college} ({edu.graduationYear})
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={() => onEditUser(user)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#ff6b35',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id!)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+          {users.map(user => <UserCard key={user.id} user={user} />)}
         </div>
       )}
     </div>
